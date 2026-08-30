@@ -6,3 +6,14 @@ api-version: '1.21'
 load: POSTWORLD
 
 authors: [ bermei ]
+
+commands:
+  riftarchive:
+    description: Controls archive logging
+    usage: /riftarchive logging <on|off|toggle>
+    permission: riftarchive.admin
+
+permissions:
+  riftarchive.admin:
+    description: Allows control of archive logging
+    default: op

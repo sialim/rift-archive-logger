@@ -26,7 +26,7 @@ public final class ArchiveListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryOpen(InventoryOpenEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) {
+        if (!plugin.isLoggingEnabled() || !(event.getPlayer() instanceof Player player)) {
             return;
         }
 
@@ -46,7 +46,7 @@ public final class ArchiveListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBookUse(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
+        if (!plugin.isLoggingEnabled() || event.getHand() != EquipmentSlot.HAND) {
             return;
         }
 

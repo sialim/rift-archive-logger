@@ -1,3 +1,4 @@
+logging-enabled: false
 books-directory: books
 containers-directory: containers
 container-names: {}

@@ -1,0 +1,8 @@
+name: rift-archive-logger
+version: '${version}'
+
+main: org.bermei.riftArchiveLogger.RiftArchiveLogger
+api-version: '1.21.4'
+load: POSTWORLD
+
+authors: [ bermei ]

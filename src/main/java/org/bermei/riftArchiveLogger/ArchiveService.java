@@ -39,6 +39,7 @@ public final class ArchiveService {
     private static final DateTimeFormatter DISPLAY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final RiftArchiveLogger plugin;
+    private final Object fileLock = new Object();
 
     public ArchiveService(RiftArchiveLogger plugin) {
         this.plugin = plugin;
@@ -63,7 +64,7 @@ public final class ArchiveService {
         }
 
         Path directory = plugin.getDataFolder().toPath().resolve(plugin.getConfig().getString("books-directory", "books"));
-        writeAsync(directory, safeFileName(title) + ".txt", output.toString(), false);
+        writeBookAsync(directory, safeFileName(title) + ".txt", output.toString(), player);
     }
 
     public void archiveContainer(Player player, Inventory inventory, String viewTitle) {
@@ -92,7 +93,7 @@ public final class ArchiveService {
 
         String timestampedName = name + " - " + FILE_TIME.format(now) + ".txt";
         Path directory = plugin.getDataFolder().toPath().resolve(plugin.getConfig().getString("containers-directory", "containers"));
-        writeAsync(directory, safeFileName(timestampedName), output.toString(), true);
+        writeAsync(directory, timestampedName, output.toString(), true, player, "container");
     }
 
     private String resolveContainerName(ContainerInfo info) {
@@ -138,24 +139,82 @@ public final class ArchiveService {
         return yaml.saveToString();
     }
 
-    private void writeAsync(Path directory, String fileName, String contents, boolean avoidOverwrite) {
+    private void writeAsync(Path directory, String fileName, String contents, boolean avoidOverwrite,
+                            Player player, String archiveType) {
         String safeName = safeFileName(fileName);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                Files.createDirectories(directory);
-                Path target = directory.resolve(safeName).normalize();
-                if (!target.startsWith(directory.normalize())) {
-                    throw new IOException("Archive filename escaped the archive directory");
+            synchronized (fileLock) {
+                try {
+                    Files.createDirectories(directory);
+                    Path target = directory.resolve(safeName).normalize();
+                    if (!target.startsWith(directory.normalize())) {
+                        throw new IOException("Archive filename escaped the archive directory");
+                    }
+                    if (avoidOverwrite) {
+                        target = nextAvailable(target);
+                    }
+                    Files.writeString(target, contents, StandardCharsets.UTF_8,
+                            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                    reportSuccess(player, archiveType, safeName, target.getFileName().toString());
+                } catch (IOException exception) {
+                    plugin.getLogger().warning("Could not write archive file: " + exception.getMessage());
                 }
-                if (avoidOverwrite) {
-                    target = nextAvailable(target);
-                }
-                Files.writeString(target, contents, StandardCharsets.UTF_8,
-                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-            } catch (IOException exception) {
-                plugin.getLogger().warning("Could not write archive file: " + exception.getMessage());
             }
         });
+    }
+
+    private void writeBookAsync(Path directory, String fileName, String contents, Player player) {
+        String safeName = safeFileName(fileName);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (fileLock) {
+                try {
+                    Files.createDirectories(directory);
+                    Path target = findMatchingBook(directory, safeName, contents);
+                    if (!target.startsWith(directory.normalize())) {
+                        throw new IOException("Archive filename escaped the archive directory");
+                    }
+                    Files.writeString(target, contents, StandardCharsets.UTF_8,
+                            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+                    reportSuccess(player, "book", safeName, target.getFileName().toString());
+                } catch (IOException exception) {
+                    plugin.getLogger().warning("Could not write archive file: " + exception.getMessage());
+                }
+            }
+        });
+    }
+
+    private void reportSuccess(Player player, String archiveType, String requestedName, String savedName) {
+        boolean renamed = !requestedName.equals(savedName);
+        String message = "Archived " + archiveType + " for " + player.getName() + ": " + savedName;
+        if (renamed) {
+            message += " (requested " + requestedName + "; that filename already existed)";
+        }
+        plugin.getLogger().info(message);
+
+        if (renamed) {
+            String notice = ChatColor.YELLOW + "Archive filename " + ChatColor.WHITE + requestedName
+                    + ChatColor.YELLOW + " already existed. Saved this copy as " + ChatColor.WHITE + savedName + ChatColor.YELLOW + ".";
+            plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
+        }
+    }
+
+    private Path findMatchingBook(Path directory, String fileName, String contents) throws IOException {
+        int extension = fileName.lastIndexOf('.');
+        String base = extension >= 0 ? fileName.substring(0, extension) : fileName;
+        String suffix = extension >= 0 ? fileName.substring(extension) : "";
+        int number = 1;
+
+        while (true) {
+            String candidateName = number == 1 ? base + suffix : base + " - " + number + suffix;
+            Path candidate = directory.resolve(candidateName).normalize();
+            if (!Files.exists(candidate)) {
+                return candidate;
+            }
+            if (Files.readString(candidate, StandardCharsets.UTF_8).equals(contents)) {
+                return candidate;
+            }
+            number++;
+        }
     }
 
     private Path nextAvailable(Path original) {

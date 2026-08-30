@@ -193,13 +193,19 @@ public final class ArchiveService {
             synchronized (fileLock) {
                 try {
                     Files.createDirectories(directory);
-                    Path target = findMatchingBook(directory, safeName, contents);
+                    BookTarget bookTarget = findMatchingBook(directory, safeName, contents);
+                    Path target = bookTarget.path();
                     if (!target.startsWith(directory.normalize())) {
                         throw new IOException("Archive filename escaped the archive directory");
                     }
                     Files.writeString(target, contents, StandardCharsets.UTF_8,
                             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-                    reportSuccess(player, "book", safeName, target.getFileName().toString());
+                    if (bookTarget.alreadyArchived()) {
+                        plugin.getServer().getScheduler().runTask(plugin,
+                                () -> player.sendMessage(ChatColor.YELLOW + "This Book Has Already Been Archived"));
+                    } else {
+                        reportSuccess(player, "book", safeName, target.getFileName().toString());
+                    }
                 } catch (IOException exception) {
                     reportFailure(player, "book", exception);
                 }
@@ -223,7 +229,7 @@ public final class ArchiveService {
         plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
     }
 
-    private Path findMatchingBook(Path directory, String fileName, String contents) throws IOException {
+    private BookTarget findMatchingBook(Path directory, String fileName, String contents) throws IOException {
         int extension = fileName.lastIndexOf('.');
         String base = extension >= 0 ? fileName.substring(0, extension) : fileName;
         String suffix = extension >= 0 ? fileName.substring(extension) : "";
@@ -233,10 +239,10 @@ public final class ArchiveService {
             String candidateName = number == 1 ? base + suffix : base + " - " + number + suffix;
             Path candidate = directory.resolve(candidateName).normalize();
             if (!Files.exists(candidate)) {
-                return candidate;
+                return new BookTarget(candidate, false);
             }
             if (Files.readString(candidate, StandardCharsets.UTF_8).equals(contents)) {
-                return candidate;
+                return new BookTarget(candidate, true);
             }
             number++;
         }
@@ -258,6 +264,9 @@ public final class ArchiveService {
             number++;
         } while (Files.exists(candidate));
         return candidate;
+    }
+
+    private record BookTarget(Path path, boolean alreadyArchived) {
     }
 
     private String safeFileName(String value) {

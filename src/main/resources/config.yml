@@ -1,5 +1,3 @@
-logging-enabled: false
-debug-logging: false
 books-directory: books
 containers-directory: containers
 container-names: {}

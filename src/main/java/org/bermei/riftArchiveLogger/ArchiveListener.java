@@ -26,21 +26,15 @@ public final class ArchiveListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryOpen(InventoryOpenEvent event) {
-        if (!plugin.isLoggingEnabled() || !(event.getPlayer() instanceof Player player)) {
+        if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
 
         Inventory inventory = event.getInventory();
         if (inventory.getHolder() instanceof Lectern) {
             ItemStack book = inventory.getItem(0);
-            if (plugin.isDebugEnabled()) {
-                String contents = book == null ? "empty" : book.getType().name();
-                plugin.getLogger().info("Detected lectern opened by " + player.getName() + "; lectern book slot contains " + contents + ".");
-            }
             if (isBook(book)) {
                 plugin.getArchiveService().archiveBook(player, book);
-            } else if (plugin.isDebugEnabled()) {
-                plugin.getLogger().info("Lectern did not contain a written or writable book to archive.");
             }
             return;
         }
@@ -52,7 +46,7 @@ public final class ArchiveListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBookUse(PlayerInteractEvent event) {
-        if (!plugin.isLoggingEnabled() || event.getHand() != EquipmentSlot.HAND) {
+        if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
 

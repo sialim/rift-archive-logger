@@ -185,17 +185,12 @@ public final class ArchiveService {
 
     private void reportSuccess(Player player, String archiveType, String requestedName, String savedName) {
         boolean renamed = !requestedName.equals(savedName);
-        String message = "Archived " + archiveType + " for " + player.getName() + ": " + savedName;
-        if (renamed) {
-            message += " (requested " + requestedName + "; that filename already existed)";
-        }
-        plugin.getLogger().info(message);
-
-        if (renamed) {
-            String notice = ChatColor.YELLOW + "Archive filename " + ChatColor.WHITE + requestedName
-                    + ChatColor.YELLOW + " already existed. Saved this copy as " + ChatColor.WHITE + savedName + ChatColor.YELLOW + ".";
-            plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
-        }
+        String notice = renamed
+                ? ChatColor.GREEN + "Archived " + archiveType + ": " + ChatColor.WHITE + savedName
+                + ChatColor.YELLOW + " (duplicate filename " + ChatColor.WHITE + requestedName
+                + ChatColor.YELLOW + "; saved as " + ChatColor.WHITE + savedName + ChatColor.YELLOW + ")."
+                : ChatColor.GREEN + "Archived " + archiveType + ": " + ChatColor.WHITE + savedName;
+        plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
     }
 
     private Path findMatchingBook(Path directory, String fileName, String contents) throws IOException {

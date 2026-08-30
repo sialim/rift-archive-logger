@@ -157,7 +157,7 @@ public final class ArchiveService {
                             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
                     reportSuccess(player, archiveType, safeName, target.getFileName().toString());
                 } catch (IOException exception) {
-                    plugin.getLogger().warning("Could not write archive file: " + exception.getMessage());
+                    reportFailure(player, archiveType, exception);
                 }
             }
         });
@@ -177,7 +177,7 @@ public final class ArchiveService {
                             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
                     reportSuccess(player, "book", safeName, target.getFileName().toString());
                 } catch (IOException exception) {
-                    plugin.getLogger().warning("Could not write archive file: " + exception.getMessage());
+                    reportFailure(player, "book", exception);
                 }
             }
         });
@@ -190,6 +190,12 @@ public final class ArchiveService {
                 + ChatColor.YELLOW + " (duplicate filename " + ChatColor.WHITE + requestedName
                 + ChatColor.YELLOW + "; saved as " + ChatColor.WHITE + savedName + ChatColor.YELLOW + ")."
                 : ChatColor.GREEN + "Archived " + archiveType + ": " + ChatColor.WHITE + savedName;
+        plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
+    }
+
+    private void reportFailure(Player player, String archiveType, IOException exception) {
+        String detail = exception.getMessage() == null ? "unknown file error" : exception.getMessage();
+        String notice = ChatColor.RED + "Could not archive " + archiveType + ": " + detail;
         plugin.getServer().getScheduler().runTask(plugin, () -> player.sendMessage(notice));
     }
 

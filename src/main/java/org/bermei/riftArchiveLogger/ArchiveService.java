@@ -22,6 +22,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -54,6 +55,7 @@ public final class ArchiveService {
         String author = meta.hasAuthor() ? meta.getAuthor() : "Unknown Author";
         String type = book.getType() == Material.WRITTEN_BOOK ? "Published Book" : "Writable Book";
         List<String> pages = meta.hasPages() ? meta.getPages() : List.of();
+        String fileTitle = bookFileTitle(book, meta);
 
         StringBuilder output = new StringBuilder();
         output.append(title).append(" | ").append(author).append(System.lineSeparator());
@@ -64,7 +66,29 @@ public final class ArchiveService {
         }
 
         Path directory = plugin.getDataFolder().toPath().resolve(plugin.getConfig().getString("books-directory", "books"));
-        writeBookAsync(directory, safeFileName(title) + ".txt", output.toString(), player);
+        writeBookAsync(directory, safeFileName(fileTitle) + ".txt", output.toString(), player);
+    }
+
+    private String bookFileTitle(ItemStack book, BookMeta meta) {
+        String originalTitle = meta.hasTitle() ? meta.getTitle() : originalBookName(book.getType());
+        ItemMeta itemMeta = book.getItemMeta();
+        String renamedTitle = null;
+        if (itemMeta != null) {
+            if (itemMeta.hasDisplayName() && itemMeta.getDisplayName() != null && !itemMeta.getDisplayName().isBlank()) {
+                renamedTitle = itemMeta.getDisplayName();
+            } else if (itemMeta.hasItemName() && itemMeta.getItemName() != null && !itemMeta.getItemName().isBlank()) {
+                renamedTitle = itemMeta.getItemName();
+            }
+        }
+
+        if (renamedTitle == null || renamedTitle.equalsIgnoreCase(originalTitle)) {
+            return originalTitle;
+        }
+        return originalTitle + " (" + renamedTitle + ")";
+    }
+
+    private String originalBookName(Material material) {
+        return material == Material.WRITABLE_BOOK ? "Book & Quill" : "Written Book";
     }
 
     public void archiveContainer(Player player, Inventory inventory, String viewTitle) {

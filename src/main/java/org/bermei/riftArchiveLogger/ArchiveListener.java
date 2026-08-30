@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.block.Lectern;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,6 +31,20 @@ public final class ArchiveListener implements Listener {
         }
 
         Inventory inventory = event.getInventory();
+        if (inventory.getHolder() instanceof Lectern) {
+            ItemStack book = inventory.getItem(0);
+            if (plugin.isDebugEnabled()) {
+                String contents = book == null ? "empty" : book.getType().name();
+                plugin.getLogger().info("Detected lectern opened by " + player.getName() + "; lectern book slot contains " + contents + ".");
+            }
+            if (isBook(book)) {
+                plugin.getArchiveService().archiveBook(player, book);
+            } else if (plugin.isDebugEnabled()) {
+                plugin.getLogger().info("Lectern did not contain a written or writable book to archive.");
+            }
+            return;
+        }
+
         if (isArchiveContainer(inventory.getHolder())) {
             plugin.getArchiveService().archiveContainer(player, inventory, event.getView().getTitle());
         }

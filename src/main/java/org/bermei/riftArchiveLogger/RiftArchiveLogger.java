@@ -6,11 +6,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class RiftArchiveLogger extends JavaPlugin {
     private ArchiveService archiveService;
     private boolean loggingEnabled;
+    private boolean debugEnabled;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loggingEnabled = getConfig().getBoolean("logging-enabled", false);
+        debugEnabled = getConfig().getBoolean("debug-logging", false);
         archiveService = new ArchiveService(this);
 
         getServer().getPluginManager().registerEvents(new ArchiveListener(this), this);
@@ -41,6 +43,16 @@ public final class RiftArchiveLogger extends JavaPlugin {
     public void setLoggingEnabled(boolean enabled) {
         loggingEnabled = enabled;
         getConfig().set("logging-enabled", enabled);
+        saveConfig();
+    }
+
+    public boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
+    public void setDebugEnabled(boolean enabled) {
+        debugEnabled = enabled;
+        getConfig().set("debug-logging", enabled);
         saveConfig();
     }
 }

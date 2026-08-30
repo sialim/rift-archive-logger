@@ -2,7 +2,18 @@ name: rift-archive-logger
 version: '${version}'
 
 main: org.bermei.riftArchiveLogger.RiftArchiveLogger
-api-version: '1.21.4'
+api-version: '1.21'
 load: POSTWORLD
 
 authors: [ bermei ]
+
+commands:
+  riftarchive:
+    description: Controls book and container archiving
+    usage: /riftarchive logging <on|off|toggle>
+    permission: riftarchive.admin
+
+permissions:
+  riftarchive.admin:
+    description: Allows control of archive logging
+    default: op
